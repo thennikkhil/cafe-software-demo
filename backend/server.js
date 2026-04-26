@@ -13,14 +13,14 @@ const server = http.createServer(app);
 // ── Socket.io ──────────────────────────────────────────────────────────────
 const io = new Server(server, {
   cors: {
-    origin: ['http://menufy-admin-app.vercel.app', 'https://menufy-customer-app.vercel.app'],
+    origin: ['https://menufy-admin-app.vercel.app', 'https://menufy-customer-app.vercel.app'],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   },
 });
 
 // ── Middleware ─────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: ['http://menufy-admin-app.vercel.app', 'https://menufy-customer-app.vercel.app'],
+  origin: ['https://menufy-admin-app.vercel.app', 'https://menufy-customer-app.vercel.app'],
 }));
 app.use(express.json());
 
