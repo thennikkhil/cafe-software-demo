@@ -3,7 +3,7 @@ import axios from 'axios'
 import { io } from 'socket.io-client'
 import {
   Phone, MessageCircle, Clock, CheckCircle2,
-  ChefHat, PackageCheck, Bell,
+  ChefHat, PackageCheck, Bell, Receipt,
 } from 'lucide-react'
 
 const API  = import.meta.env.VITE_API_URL
@@ -30,8 +30,35 @@ function formatTime(dateStr) {
 }
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'short',
+    day: 'numeric', month: 'short', year: 'numeric',
   })
+}
+
+/** Build a formatted invoice WhatsApp message sent TO the customer */
+function buildInvoiceLink(order) {
+  const itemLines = order.items
+    .map(i => `  • ${i.quantity}x ${i.name.padEnd(22)} ₹${(i.quantity * i.price_at_time).toFixed(0)}`)
+    .join('\n')
+
+  const text = [
+    `🧾 *Invoice — The Artisanal Heart*`,
+    `📅 Date: ${formatDate(order.createdAt)}`,
+    ``,
+    `👤 *${order.customer_name}* | 📞 ${order.customer_phone}`,
+    ``,
+    `━━━━━━━━━━━━━━━━━━━`,
+    itemLines,
+    `━━━━━━━━━━━━━━━━━━━`,
+    `💳 *Total Paid: ₹${order.total.toFixed(0)}*`,
+    ``,
+    `✅ Payment confirmed`,
+    ``,
+    `Thank you for dining with us! ☕`,
+    `See you again soon 🙏`,
+  ].join('\n')
+
+  // Send invoice TO customer's number
+  return `https://wa.me/91${order.customer_phone}?text=${encodeURIComponent(text)}`
 }
 
 export default function Orders() {
@@ -164,6 +191,9 @@ function OrderCard({ order, onStatusChange, onPaymentToggle }) {
     await onPaymentToggle(order._id)
   }
 
+  const canSendInvoice = payment && status === 'ready'
+  const invoiceLink    = canSendInvoice ? buildInvoiceLink(order) : null
+
   return (
     <div className={`card transition-all duration-300 border-l-4 ${
       status === 'ready'     ? 'border-l-green-500' :
@@ -224,7 +254,7 @@ function OrderCard({ order, onStatusChange, onPaymentToggle }) {
         </div>
 
         {/* Payment toggle + WhatsApp */}
-        <div className='flex items-center justify-between'>
+        <div className='flex items-center justify-between gap-2 flex-wrap'>
           <button
             onClick={handlePaymentToggle}
             className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
@@ -237,7 +267,24 @@ function OrderCard({ order, onStatusChange, onPaymentToggle }) {
             {payment ? 'Paid ✓' : 'Mark Paid'}
           </button>
 
-          {order.whatsapp_link && (
+          {/* Send Invoice button — only when ready + paid */}
+          {invoiceLink && (
+            <a
+              href={invoiceLink}
+              target='_blank'
+              rel='noreferrer'
+              className='flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5
+                         bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg
+                         transition-colors shadow-sm'
+              title={`Send invoice to ${order.customer_name} on WhatsApp`}
+            >
+              <Receipt className='w-3 h-3' />
+              Send Invoice
+            </a>
+          )}
+
+          {/* Fallback: general WA link for non-ready orders */}
+          {!invoiceLink && order.whatsapp_link && (
             <a
               href={order.whatsapp_link}
               target='_blank'
@@ -250,6 +297,17 @@ function OrderCard({ order, onStatusChange, onPaymentToggle }) {
             </a>
           )}
         </div>
+
+        {/* Invoice hint */}
+        {!canSendInvoice && (
+          <p className='text-[10px] text-gray-400 italic'>
+            {!payment && status !== 'ready'
+              ? 'Mark as Ready + Paid to unlock Send Invoice'
+              : !payment
+              ? 'Mark as Paid to unlock Send Invoice'
+              : 'Set status to Ready to unlock Send Invoice'}
+          </p>
+        )}
       </div>
     </div>
   )

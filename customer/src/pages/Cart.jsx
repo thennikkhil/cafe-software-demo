@@ -7,9 +7,27 @@ import { useCart } from '../context/CartContext'
 const API          = import.meta.env.VITE_API_URL
 const WHATSAPP_NUM = import.meta.env.VITE_WHATSAPP_NUMBER
 
-function buildWhatsAppLink(name, items, total) {
-  const itemsText = items.map(c => `${c.quantity}x ${c.item.name}`).join(', ')
-  const text = `New Order from ${name}: ${itemsText} | Total: ₹${total.toFixed(0)}`
+function buildWhatsAppLink(name, phone, items, total) {
+  const itemLines = items
+    .map(c => `  • ${c.quantity}x ${c.item.name} — ₹${(c.quantity * c.item.price).toFixed(0)}`)
+    .join('\n')
+
+  const text = [
+    `🍽️ *New Order — The Artisanal Heart*`,
+    ``,
+    `👤 *Name:* ${name}`,
+    `📞 *Phone:* ${phone}`,
+    ``,
+    `🛒 *Order Items:*`,
+    itemLines,
+    ``,
+    `━━━━━━━━━━━━━━━━━━━`,
+    `💰 *Total: ₹${total.toFixed(0)}*`,
+    `━━━━━━━━━━━━━━━━━━━`,
+    ``,
+    `Please confirm my order! 🙏`,
+  ].join('\n')
+
   return `https://wa.me/${WHATSAPP_NUM}?text=${encodeURIComponent(text)}`
 }
 
@@ -28,7 +46,7 @@ export default function Cart() {
     if (phone.length < 10) { setError('Enter a valid 10-digit phone number.'); return }
     setPlacing(true); setError('')
 
-    const whatsapp_link = buildWhatsAppLink(name.trim(), cart, total)
+    const whatsapp_link = buildWhatsAppLink(name.trim(), phone.trim(), cart, total)
     const payload = {
       customer_name:  name.trim(),
       customer_phone: phone.trim(),

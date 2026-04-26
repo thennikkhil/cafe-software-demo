@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import {
   Plus, Pencil, Trash2, UploadCloud, X, Check,
-  ImageIcon, ToggleLeft, ToggleRight, Search,
+  ImageIcon, ToggleLeft, ToggleRight, Search, Tag,
 } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_URL
@@ -12,18 +12,24 @@ const EMPTY_FORM = {
 }
 
 export default function Menu() {
-  const [items,   setItems]   = useState([])
-  const [loading, setLoading] = useState(true)
-  const [modal,   setModal]   = useState(false)   // 'add' | 'edit' | false
-  const [editId,  setEditId]  = useState(null)
-  const [form,    setForm]    = useState(EMPTY_FORM)
-  const [uploading, setUploading] = useState(false)
-  const [saving,    setSaving]   = useState(false)
-  const [filter,    setFilter]   = useState('All')
-  const [search,    setSearch]   = useState('')
+  const [items,      setItems]      = useState([])
+  const [categories, setCategories] = useState([])
+  const [loading,    setLoading]    = useState(true)
+  const [modal,      setModal]      = useState(false)   // 'add' | 'edit' | false
+  const [editId,     setEditId]     = useState(null)
+  const [form,       setForm]       = useState(EMPTY_FORM)
+  const [uploading,  setUploading]  = useState(false)
+  const [saving,     setSaving]     = useState(false)
+  const [filter,     setFilter]     = useState('All')
+  const [search,     setSearch]     = useState('')
+  const [newCatName, setNewCatName] = useState('')
+  const [addingCat,  setAddingCat]  = useState(false)
+  const [showNewCat, setShowNewCat] = useState(false)
   const fileRef = useRef()
 
-  useEffect(() => { fetchItems() }, [])
+  useEffect(() => {
+    Promise.all([fetchItems(), fetchCategories()])
+  }, [])
 
   async function fetchItems() {
     try {
@@ -31,6 +37,13 @@ export default function Menu() {
       setItems(data)
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
+  }
+
+  async function fetchCategories() {
+    try {
+      const { data } = await axios.get(`${API}/api/categories`)
+      setCategories(data)
+    } catch (err) { console.error(err) }
   }
 
   // ── Auto-upload image ─────────────────────────────────────────────────
@@ -51,14 +64,15 @@ export default function Menu() {
   }
 
   function openAdd() {
-    setForm(EMPTY_FORM); setEditId(null); setModal('add')
+    setForm(EMPTY_FORM); setEditId(null); setModal('add'); setShowNewCat(false)
   }
   function openEdit(item) {
     setForm({ ...item, price: String(item.price) })
     setEditId(item._id)
     setModal('edit')
+    setShowNewCat(false)
   }
-  function closeModal() { setModal(false); setForm(EMPTY_FORM) }
+  function closeModal() { setModal(false); setForm(EMPTY_FORM); setShowNewCat(false); setNewCatName('') }
 
   async function handleSave(e) {
     e.preventDefault()
@@ -96,9 +110,25 @@ export default function Menu() {
     } catch (err) { console.error(err) }
   }
 
+  // ── Add new category inline ────────────────────────────────────────────
+  async function handleAddCategory(e) {
+    e.preventDefault()
+    if (!newCatName.trim()) return
+    setAddingCat(true)
+    try {
+      const { data } = await axios.post(`${API}/api/categories`, { name: newCatName.trim() })
+      setCategories(prev => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)))
+      setForm(f => ({ ...f, category: data.name }))
+      setNewCatName('')
+      setShowNewCat(false)
+    } catch (err) {
+      alert(err.response?.data?.error ?? 'Failed to add category.')
+    } finally { setAddingCat(false) }
+  }
+
   // ── Derived state ─────────────────────────────────────────────────────
-  const categories = ['All', ...new Set(items.map(i => i.category))]
-  const filtered   = items
+  const allCategoryNames = ['All', ...categories.map(c => c.name)]
+  const filtered = items
     .filter(i => filter === 'All' || i.category === filter)
     .filter(i => i.name.toLowerCase().includes(search.toLowerCase()))
 
@@ -116,9 +146,9 @@ export default function Menu() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        {/* Category tabs */}
+        {/* Category filter tabs */}
         <div className='flex gap-1 flex-wrap'>
-          {categories.map(c => (
+          {allCategoryNames.map(c => (
             <button
               key={c}
               onClick={() => setFilter(c)}
@@ -288,10 +318,59 @@ export default function Menu() {
                     onChange={e => setForm(f => ({ ...f, price: e.target.value }))} />
                 </div>
                 <div>
-                  <label className='block text-xs font-semibold text-gray-600 mb-1'>Category *</label>
-                  <input required className='input' placeholder='e.g. Beverages'
-                    value={form.category}
-                    onChange={e => setForm(f => ({ ...f, category: e.target.value }))} />
+                  <label className='block text-xs font-semibold text-gray-600 mb-1'>
+                    Category *
+                  </label>
+                  {showNewCat ? (
+                    /* Inline add new category */
+                    <form onSubmit={handleAddCategory} className='flex gap-1'>
+                      <input
+                        autoFocus
+                        type='text'
+                        className='input text-xs flex-1 min-w-0'
+                        placeholder='New category…'
+                        value={newCatName}
+                        onChange={e => setNewCatName(e.target.value)}
+                      />
+                      <button
+                        type='submit'
+                        disabled={addingCat || !newCatName.trim()}
+                        className='px-2 py-1 bg-primary-700 text-white rounded-lg text-xs
+                                   hover:bg-primary-800 disabled:opacity-50 transition-colors shrink-0'
+                      >
+                        {addingCat ? '…' : <Check className='w-3 h-3' />}
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => { setShowNewCat(false); setNewCatName('') }}
+                        className='px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs hover:bg-gray-200 shrink-0'
+                      >
+                        <X className='w-3 h-3' />
+                      </button>
+                    </form>
+                  ) : (
+                    <div className='relative'>
+                      <select
+                        required
+                        value={form.category}
+                        onChange={e => {
+                          if (e.target.value === '__new__') {
+                            setShowNewCat(true)
+                          } else {
+                            setForm(f => ({ ...f, category: e.target.value }))
+                          }
+                        }}
+                        className='input appearance-none pr-8 cursor-pointer'
+                      >
+                        <option value=''>Select category…</option>
+                        {categories.map(c => (
+                          <option key={c._id} value={c.name}>{c.name}</option>
+                        ))}
+                        <option value='__new__'>➕ Add new category…</option>
+                      </select>
+                      <Tag className='absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none' />
+                    </div>
+                  )}
                 </div>
               </div>
 

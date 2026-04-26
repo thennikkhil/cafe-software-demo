@@ -34,10 +34,11 @@ mongoose
   .catch((err) => console.error('❌  MongoDB connection error:', err));
 
 // ── Routes ─────────────────────────────────────────────────────────────────
-app.use('/api/upload',    require('./routes/upload'));
-app.use('/api/menu',      require('./routes/menu'));
-app.use('/api/orders',    require('./routes/orders'));
-app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/upload',     require('./routes/upload'));
+app.use('/api/menu',       require('./routes/menu'));
+app.use('/api/orders',     require('./routes/orders'));
+app.use('/api/analytics',  require('./routes/analytics'));
+app.use('/api/categories', require('./routes/categories'));
 
 // ── Socket.io events ───────────────────────────────────────────────────────
 io.on('connection', (socket) => {

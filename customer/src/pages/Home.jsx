@@ -4,22 +4,35 @@ import axios from 'axios'
 import {
   ShoppingCart, Search, ImageIcon,
   Coffee, Croissant, Egg, Leaf,
-  UtensilsCrossed, Cake, Star
+  UtensilsCrossed, Cake, Star, IceCream, Sandwich,
+  Soup, Pizza, Flame,
 } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 
 const API = import.meta.env.VITE_API_URL
 
-/* ─── Category config ─── */
-const CATEGORIES = [
-  { label: 'All',       icon: <Coffee          className='w-4 h-4' /> },
-  { label: 'Coffee',    icon: <Coffee          className='w-4 h-4' /> },
-  { label: 'Tea',       icon: <Leaf            className='w-4 h-4' /> },
-  { label: 'Bakery',    icon: <Croissant       className='w-4 h-4' /> },
-  { label: 'Breakfast', icon: <Egg             className='w-4 h-4' /> },
-  { label: 'Mains',     icon: <UtensilsCrossed className='w-4 h-4' /> },
-  { label: 'Desserts',  icon: <Cake            className='w-4 h-4' /> },
+/* ─── Icon map: category name → icon (case-insensitive prefix match) ─── */
+const ICON_MAP = [
+  { keys: ['coffee', 'espresso', 'latte', 'cappuccino', 'hot bev'],  icon: <Coffee          className='w-4 h-4' /> },
+  { keys: ['tea', 'chai', 'matcha'],                                  icon: <Leaf            className='w-4 h-4' /> },
+  { keys: ['bakery', 'croissant', 'bread', 'pastry'],                 icon: <Croissant       className='w-4 h-4' /> },
+  { keys: ['breakfast', 'egg', 'brunch'],                             icon: <Egg             className='w-4 h-4' /> },
+  { keys: ['mains', 'main', 'lunch', 'dinner'],                       icon: <UtensilsCrossed className='w-4 h-4' /> },
+  { keys: ['dessert', 'sweet', 'cake', 'kulfi'],                      icon: <Cake            className='w-4 h-4' /> },
+  { keys: ['cold bev', 'juice', 'smoothie', 'shake', 'soda'],        icon: <IceCream        className='w-4 h-4' /> },
+  { keys: ['snack', 'sandwich', 'wrap'],                              icon: <Sandwich        className='w-4 h-4' /> },
+  { keys: ['soup'],                                                   icon: <Soup            className='w-4 h-4' /> },
+  { keys: ['pizza', 'pasta'],                                         icon: <Pizza           className='w-4 h-4' /> },
+  { keys: ['spicy', 'hot', 'grill'],                                  icon: <Flame           className='w-4 h-4' /> },
 ]
+
+function getCategoryIcon(name) {
+  const lower = name.toLowerCase()
+  for (const { keys, icon } of ICON_MAP) {
+    if (keys.some(k => lower.includes(k))) return icon
+  }
+  return <UtensilsCrossed className='w-4 h-4' />  // fallback
+}
 
 /* ─── Item Card ─── */
 function ItemCard({ item }) {
@@ -77,35 +90,47 @@ function ItemCard({ item }) {
 
 /* ─── Home Page ─── */
 export default function Home() {
-  const [menuItems,  setMenuItems]  = useState([])
-  const [loading,    setLoading]    = useState(true)
+  const [menuItems,      setMenuItems]      = useState([])
+  const [categories,     setCategories]     = useState([])
+  const [loading,        setLoading]        = useState(true)
   const [activeCategory, setActiveCategory] = useState('All')
-  const [search,     setSearch]     = useState('')
+  const [search,         setSearch]         = useState('')
   const { itemCount } = useCart()
   const navigate = useNavigate()
 
   useEffect(() => {
-    axios.get(`${API}/api/menu?is_available=true`)
-      .then(r => setMenuItems(r.data))
+    Promise.all([
+      axios.get(`${API}/api/menu?is_available=true`).then(r => setMenuItems(r.data)),
+      axios.get(`${API}/api/categories`).then(r => setCategories(r.data)),
+    ])
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
 
   const filtered = menuItems.filter(item => {
-    const matchCat = activeCategory === 'All' || item.category === activeCategory
+    const matchCat    = activeCategory === 'All' || item.category === activeCategory
     const matchSearch = search === '' || item.name.toLowerCase().includes(search.toLowerCase())
     return matchCat && matchSearch
   })
 
   /* Group by category for "All" view */
-  const categories = [...new Set(menuItems.map(i => i.category))]
-  const grouped = categories.reduce((acc, cat) => {
+  const catNames = [...new Set(menuItems.map(i => i.category))]
+  const grouped = catNames.reduce((acc, cat) => {
     const items = filtered.filter(i => i.category === cat)
     if (items.length) acc[cat] = items
     return acc
   }, {})
 
   const displayGroups = activeCategory === 'All' ? grouped : { [activeCategory]: filtered }
+
+  /* Build dynamic pill list: All + fetched categories (only those with items) */
+  const activeCatNames = new Set(menuItems.map(i => i.category))
+  const pills = [
+    { label: 'All', icon: <Coffee className='w-4 h-4' /> },
+    ...categories
+      .filter(c => activeCatNames.has(c.name))
+      .map(c => ({ label: c.name, icon: getCategoryIcon(c.name) })),
+  ]
 
   return (
     <div className='app-shell min-h-screen pb-8'>
@@ -150,10 +175,10 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Category Pills ── */}
+      {/* ── Category Pills (dynamic from API) ── */}
       <div className='px-5 mb-5'>
         <div className='flex gap-2 overflow-x-auto no-scrollbar'>
-          {CATEGORIES.map(cat => (
+          {pills.map(cat => (
             <button
               key={cat.label}
               onClick={() => setActiveCategory(cat.label)}

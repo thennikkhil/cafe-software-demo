@@ -85,9 +85,17 @@ export default function Confirmation() {
               </div>
               <div>
                 <p className='font-semibold text-green-900 text-sm'>Notify via WhatsApp</p>
-                <p className='text-green-700 text-xs mt-0.5'>Tap to instantly alert the café</p>
+                <p className='text-green-700 text-xs mt-0.5'>
+                  Send your order details directly to the café
+                </p>
               </div>
             </div>
+
+            {/* Message preview */}
+            <div className='bg-white rounded-xl border border-green-100 px-4 py-3 mb-4 text-xs text-gray-700 leading-relaxed font-mono whitespace-pre-wrap break-words'>
+              {decodeURIComponent(whatsapp_link.split('?text=')[1] ?? '')}
+            </div>
+
             <a
               href={whatsapp_link}
               target='_blank'
@@ -97,7 +105,7 @@ export default function Confirmation() {
                          transition-colors duration-200 w-full active:scale-95'
             >
               <MessageCircle className='w-4 h-4' />
-              Open WhatsApp
+              Open WhatsApp &amp; Send Order
             </a>
 
             {/* Copy link */}

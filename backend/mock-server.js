@@ -111,6 +111,11 @@ let menuItems = [
   { _id:'38', name:'Mango Kulfi',        category:'Desserts',       price:110, description:'Traditional Indian frozen dessert made with reduced milk and fresh mango.',  image_url:imgs.kulfi,      is_available:false, createdAt:new Date() },
 ];
 
+// ── Categories (auto-seeded from menu items) ────────────────────────────────
+let categories = [
+  ...new Set(menuItems.map(i => i.category))
+].map((name, idx) => ({ _id: `cat${idx + 1}`, name, createdAt: new Date() }));
+
 let orders = [
   {
     _id:'o1', customer_name:'Priya Sharma', customer_phone:'9876543210',
@@ -186,6 +191,28 @@ app.delete('/api/menu/:id', (req, res) => {
 // Upload (returns a placeholder since no Cloudinary)
 app.post('/api/upload', (req, res) => {
   res.json({ secure_url: `https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&h=600&fit=crop&t=${Date.now()}` });
+});
+
+// Categories
+app.get('/api/categories', (req, res) => {
+  res.json([...categories].sort((a, b) => a.name.localeCompare(b.name)));
+});
+app.post('/api/categories', (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required.' });
+  const trimmed = name.trim();
+  if (categories.find(c => c.name.toLowerCase() === trimmed.toLowerCase())) {
+    return res.status(409).json({ error: 'Category already exists.' });
+  }
+  const cat = { _id: `cat${Date.now()}`, name: trimmed, createdAt: new Date() };
+  categories.push(cat);
+  res.status(201).json(cat);
+});
+app.delete('/api/categories/:id', (req, res) => {
+  const idx = categories.findIndex(c => c._id === req.params.id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  categories.splice(idx, 1);
+  res.json({ message: 'Deleted' });
 });
 
 // Orders
