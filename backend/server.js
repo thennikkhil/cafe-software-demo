@@ -39,6 +39,8 @@ app.use('/api/menu',       require('./routes/menu'));
 app.use('/api/orders',     require('./routes/orders'));
 app.use('/api/analytics',  require('./routes/analytics'));
 app.use('/api/categories', require('./routes/categories'));
+app.use('/api/customers',  require('./routes/customers'));
+app.use('/api/feedback',   require('./routes/feedback'));
 
 // ── Socket.io events ───────────────────────────────────────────────────────
 io.on('connection', (socket) => {

@@ -4,14 +4,17 @@ import axios from 'axios'
 import {
   ShoppingBag, UtensilsCrossed, BarChart2, ChefHat,
   Plus, Trash2, Tag, ChevronDown, ChevronRight, Loader2,
+  Users, MessageSquare,
 } from 'lucide-react'
 
 const API = import.meta.env.VITE_API_URL
 
 const navItems = [
-  { to: '/orders', label: 'Live Orders', Icon: ShoppingBag },
-  { to: '/menu', label: 'Menu Manager', Icon: UtensilsCrossed },
-  { to: '/analytics', label: 'Analytics', Icon: BarChart2 },
+  { to: '/orders',    label: 'Live Orders',   Icon: ShoppingBag },
+  { to: '/menu',      label: 'Menu Manager',  Icon: UtensilsCrossed },
+  { to: '/analytics', label: 'Analytics',     Icon: BarChart2 },
+  { to: '/customers', label: 'Customers',     Icon: Users },
+  { to: '/feedback',  label: 'Feedback',      Icon: MessageSquare },
 ]
 
 export default function Layout() {

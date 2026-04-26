@@ -3,6 +3,8 @@ import Layout from './components/Layout'
 import Orders from './pages/Orders'
 import Menu from './pages/Menu'
 import Analytics from './pages/Analytics'
+import Customers from './pages/Customers'
+import Feedback from './pages/Feedback'
 
 export default function App() {
   return (
@@ -12,6 +14,8 @@ export default function App() {
         <Route path='orders'    element={<Orders />} />
         <Route path='menu'      element={<Menu />} />
         <Route path='analytics' element={<Analytics />} />
+        <Route path='customers' element={<Customers />} />
+        <Route path='feedback'  element={<Feedback />} />
       </Route>
     </Routes>
   )

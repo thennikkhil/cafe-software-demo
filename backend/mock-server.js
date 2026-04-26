@@ -240,20 +240,204 @@ app.patch('/api/orders/:id/payment', (req, res) => {
   res.json(order);
 });
 
+// ── Feedback seed data ───────────────────────────────────────────────────────
+let feedbacks = [
+  {
+    _id: 'f1', customer_name: 'Priya Sharma', customer_phone: '9876543210',
+    rating: 5, message: 'The Café Latte was absolutely divine! The croissant was perfectly flaky. Will definitely be back.',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60000),
+  },
+  {
+    _id: 'f2', customer_name: 'Arjun Mehta', customer_phone: '9123456789',
+    rating: 4, message: 'Great ambiance and food. The Chicken Burger was juicy and fresh. Slightly long wait time.',
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60000),
+  },
+  {
+    _id: 'f3', customer_name: 'Sneha Iyer', customer_phone: '9001234567',
+    rating: 5, message: 'Masala Dosa and Cold Brew combo is a must try! Authentic flavors, loved every bite.',
+    createdAt: new Date(Date.now() - 3 * 60 * 60000),
+  },
+  {
+    _id: 'f4', customer_name: 'Rahul Gupta', customer_phone: '9887766554',
+    rating: 3, message: 'The Pasta was decent but could use more spice. Brownie was good though!',
+    createdAt: new Date(Date.now() - 30 * 60000),
+  },
+  {
+    _id: 'f5', customer_name: 'Ananya Krishnan', customer_phone: '9765432100',
+    rating: 5, message: 'Best café in the area! The matcha latte is to die for. Cozy atmosphere.',
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60000),
+  },
+];
+
+// ── Extra historic orders for richer analytics/customers data ─────────────────
+const historicOrders = [
+  {
+    _id:'o5', customer_name:'Priya Sharma', customer_phone:'9876543210',
+    total:320, status:'ready', payment_done:true,
+    whatsapp_link:'https://wa.me/919876543210?text=Test',
+    items:[
+      { food_item_id:'5', name:'Matcha Latte', quantity:1, price_at_time:180 },
+      { food_item_id:'19', name:'Classic Pancakes', quantity:1, price_at_time:160 },
+    ],
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60000),
+  },
+  {
+    _id:'o6', customer_name:'Ananya Krishnan', customer_phone:'9765432100',
+    total:560, status:'ready', payment_done:true,
+    whatsapp_link:'https://wa.me/919765432100?text=Test',
+    items:[
+      { food_item_id:'24', name:'Margherita Pizza', quantity:1, price_at_time:300 },
+      { food_item_id:'34', name:'Tiramisu', quantity:1, price_at_time:200 },
+      { food_item_id:'2', name:'Classic Espresso', quantity:1, price_at_time:100 },
+    ],
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60000),
+  },
+  {
+    _id:'o7', customer_name:'Vikram Nair', customer_phone:'9988776655',
+    total:460, status:'ready', payment_done:true,
+    whatsapp_link:'https://wa.me/919988776655?text=Test',
+    items:[
+      { food_item_id:'21', name:'Veg Biryani', quantity:1, price_at_time:220 },
+      { food_item_id:'3', name:'Café Latte', quantity:1, price_at_time:150 },
+      { food_item_id:'32', name:'Chocolate Brownie', quantity:1, price_at_time:120 },
+    ],
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60000),
+  },
+  {
+    _id:'o8', customer_name:'Priya Sharma', customer_phone:'9876543210',
+    total:190, status:'ready', payment_done:true,
+    whatsapp_link:'https://wa.me/919876543210?text=Test',
+    items:[
+      { food_item_id:'10', name:'Iced Matcha Latte', quantity:1, price_at_time:190 },
+    ],
+    createdAt: new Date(Date.now() - 4 * 24 * 60 * 60000),
+  },
+  {
+    _id:'o9', customer_name:'Sneha Iyer', customer_phone:'9001234567',
+    total:280, status:'ready', payment_done:true,
+    whatsapp_link:'https://wa.me/919001234567?text=Test',
+    items:[
+      { food_item_id:'4', name:'Cappuccino', quantity:2, price_at_time:140 },
+    ],
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60000),
+  },
+  {
+    _id:'o10', customer_name:'Karan Bose', customer_phone:'9333222111',
+    total:530, status:'ready', payment_done:true,
+    whatsapp_link:'https://wa.me/919333222111?text=Test',
+    items:[
+      { food_item_id:'23', name:'Chicken Burger', quantity:1, price_at_time:280 },
+      { food_item_id:'30', name:'Club Sandwich', quantity:1, price_at_time:180 },
+      { food_item_id:'9', name:'Fresh Lime Soda', quantity:1, price_at_time:80 },
+    ],
+    createdAt: new Date(Date.now() - 6 * 24 * 60 * 60000),
+  },
+];
+
+// Merge historic into orders so analytics has richer data
+orders.push(...historicOrders);
+
 // Analytics
 app.get('/api/analytics', (req, res) => {
-  const todayOrders = orders;
+  const now        = new Date();
+  const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0);
+
+  const todayOrders  = orders.filter(o => new Date(o.createdAt) >= startOfDay);
   const totalRevenue = todayOrders.reduce((s,o) => s + o.total, 0);
-  const itemCounts = {};
+  const orderCount   = todayOrders.length;
+
+  // Today's item counts
+  const todayCounts = {};
   todayOrders.forEach(o => o.items.forEach(i => {
-    itemCounts[i.name] = (itemCounts[i.name] || 0) + i.quantity;
+    todayCounts[i.name] = (todayCounts[i.name] || 0) + i.quantity;
   }));
-  const sorted = Object.entries(itemCounts).sort((a,b) => b[1]-a[1]);
+  const todaySorted     = Object.entries(todayCounts).sort((a,b) => b[1]-a[1]);
+  const mostPopularItem = todaySorted[0] ? { name: todaySorted[0][0], count: todaySorted[0][1] } : null;
+
+  // All-time item leaderboard
+  const allItemCounts = {};
+  orders.forEach(o => o.items.forEach(i => {
+    if (!allItemCounts[i.name]) allItemCounts[i.name] = { qty: 0, revenue: 0 };
+    allItemCounts[i.name].qty     += i.quantity;
+    allItemCounts[i.name].revenue += i.quantity * i.price_at_time;
+  }));
+  const topItems = Object.entries(allItemCounts)
+    .map(([name, { qty, revenue }]) => ({ name, qty, revenue }))
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 10);
+
+  // Top customers by spend
+  const customerMap = {};
+  orders.forEach(o => {
+    const key = o.customer_phone;
+    if (!customerMap[key]) customerMap[key] = { name: o.customer_name, phone: o.customer_phone, spend: 0, orders: 0 };
+    customerMap[key].spend  += o.total;
+    customerMap[key].orders += 1;
+  });
+  const topCustomers = Object.values(customerMap).sort((a,b) => b.spend - a.spend).slice(0,5);
+
+  // Last 7 days revenue
+  const dailyRevenue = [];
+  for (let d = 6; d >= 0; d--) {
+    const dayStart = new Date(now); dayStart.setDate(now.getDate() - d); dayStart.setHours(0,0,0,0);
+    const dayEnd   = new Date(dayStart); dayEnd.setHours(23,59,59,999);
+    const dayOrders = orders.filter(o => new Date(o.createdAt) >= dayStart && new Date(o.createdAt) <= dayEnd);
+    dailyRevenue.push({
+      date:    dayStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }),
+      revenue: dayOrders.reduce((s,o) => s + o.total, 0),
+      orders:  dayOrders.length,
+    });
+  }
+
   res.json({
     totalRevenue,
-    orderCount: todayOrders.length,
-    mostPopularItem: sorted[0] ? { name: sorted[0][0], count: sorted[0][1] } : null,
+    orderCount,
+    mostPopularItem,
+    topItems,
+    topCustomers,
+    dailyRevenue,
+    totalAllTimeRevenue: orders.reduce((s,o) => s + o.total, 0),
+    totalAllTimeOrders:  orders.length,
   });
+});
+
+// Customers (aggregate orders by phone)
+app.get('/api/customers', (req, res) => {
+  const map = new Map();
+  [...orders].sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt)).forEach(order => {
+    const key = order.customer_phone;
+    if (!map.has(key)) {
+      map.set(key, {
+        customer_name:  order.customer_name,
+        customer_phone: order.customer_phone,
+        orderCount: 0, totalSpend: 0,
+        firstOrderAt: order.createdAt,
+        lastOrderAt:  order.createdAt,
+        orders: [],
+      });
+    }
+    const c = map.get(key);
+    c.orderCount  += 1;
+    c.totalSpend  += order.total;
+    if (new Date(order.createdAt) > new Date(c.lastOrderAt))  c.lastOrderAt  = order.createdAt;
+    if (new Date(order.createdAt) < new Date(c.firstOrderAt)) c.firstOrderAt = order.createdAt;
+    c.orders.push({ _id: order._id, total: order.total, status: order.status, createdAt: order.createdAt, itemCount: order.items.reduce((s,i)=>s+i.quantity,0) });
+  });
+  res.json(Array.from(map.values()).sort((a,b) => b.totalSpend - a.totalSpend));
+});
+
+// Feedback
+app.get('/api/feedback', (req, res) => {
+  res.json([...feedbacks].sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt)));
+});
+app.post('/api/feedback', (req, res) => {
+  const fb = { ...req.body, _id: String(Date.now()), createdAt: new Date() };
+  feedbacks.unshift(fb);
+  res.status(201).json(fb);
+});
+app.delete('/api/feedback/:id', (req, res) => {
+  feedbacks = feedbacks.filter(f => f._id !== req.params.id);
+  res.json({ message: 'Deleted' });
 });
 
 // Socket.io
@@ -265,7 +449,8 @@ io.on('connection', socket => {
 server.listen(5000, () => {
   console.log('\n🚀  Mock server running at http://localhost:5000');
   console.log('📦  35 demo menu items loaded');
-  console.log('🛒   4 demo orders loaded');
+  console.log('🛒  10 demo orders loaded');
+  console.log('💬   5 demo feedbacks loaded');
   console.log('\nOpen admin:    http://localhost:5173');
   console.log('Open customer: http://localhost:5174\n');
 });
